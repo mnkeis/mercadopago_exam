@@ -55,7 +55,8 @@ app.get('/mp/initpoint', async function(req, res) {
       auto_return: 'approved'
     };
     try {
-      let result = await mp.preferences.create(preference)  
+      let result = await mp.preferences.create(preference);
+      console.log('PreferenceID:',result.body.id);
       res.redirect(result.body.init_point);  
     } catch(err) {
       console.error(err);
@@ -69,10 +70,10 @@ app.get('/mp/initpoint', async function(req, res) {
 });
 
 app.post('/mp/notification', async function(req, res) {
-  try {
-    let data = await mp.ipn.manage(req);
-    console.log(data);
-    if (data.topic === 'payment') {
+  if (req.query.topic === 'payment') {
+    console.log('PaymentID:', req.query.id);
+    try {
+      let data = await mp.ipn.manage(req);
       let merchant_order = await mp.merchant_orders.get(data.body.order.id);
       let paid_amount = 0;
       merchant_order.body.payments.forEach(function(p) {
@@ -83,9 +84,9 @@ app.post('/mp/notification', async function(req, res) {
       if (paid_amount >= merchant_order.body.total_amount) {
         console.log(`Payment ${data.body.order.id} completed!`);
       }
+    } catch(err) {
+      console.error(err);
     }  
-  } catch(err) {
-    console.error(err);
   }
   res.status(200);
   res.end();
