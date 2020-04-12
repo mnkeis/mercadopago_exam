@@ -1,4 +1,48 @@
-
+<script type="text/javascript">
+  var body = {
+        img: "{{ img }}",
+        title: "{{ title }}",
+        price: "{{ price }}",
+        unit: "{{ unit }}",
+        name: "Lalo",
+        surname: "Landa",
+        email: "test_user_63274575@testuser.com",
+        dni: "22333444",
+        areacode: "011",
+        phone: "2222-3333",
+        street: "Falsa",
+        number: "123",
+        zip: "1111",
+  };
+  fetch('http://localhost:3000/mp/preference',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    }
+  )
+  .then(res => {
+    if (!res.ok) {
+      throw Error(res.statusText);
+    }
+    return res.text();
+  })
+  .then(response => {
+    var scriptElement = document.createElement('script');
+    scriptElement.src = `https://www.mercadopago.com.ar/integrations/v1/web-payment-checkout.js`;
+    scriptElement.setAttribute('data-preference-id', response);
+    scriptElement.setAttribute('data-button-label', "Pagar la compra");
+    var formElement = document.createElement('form');
+    formElement.action = '/procesar-pago';
+    formElement.method = 'POST';
+    formElement.appendChild(scriptElement);
+    var formContainer = document.getElementById('boton-de-pago');
+    formContainer.appendChild(formElement);
+  })
+  .catch(error => console.error('Error:', error));
+</script>
 <div class="as-search-wrapper" role="main">
     <div class="as-navtuck-wrapper">
         <div class="as-l-fullwidth  as-navtuck" data-events="event52">
@@ -84,13 +128,7 @@
                                     {{ unit }}
                                 </h3>
                             </div>
-                            <form action="/mp/initpoint" method="get">
-                              <input type="hidden" name="img" value="{{ img }}">
-                              <input type="hidden" name="title" value="{{ title }}">
-                              <input type="hidden" name="price" value="{{ price }}">
-                              <input type="hidden" name="unit" value="{{ unit }}">
-                              <button type="submit" class="mercadopago-button" formmethod="get">Pagar</button>
-                            </form>
+                            <div id="boton-de-pago"></div>
                         </div>
                     </div>
                 </div>

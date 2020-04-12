@@ -1,6 +1,7 @@
 var express = require('express');
 var exphbs  = require('express-handlebars');
 var mp = require('mercadopago');
+var bodyParser = require('body-parser');
 
 mp.configure({
   sandbox: true,
@@ -8,7 +9,9 @@ mp.configure({
 });
 
 var app = express();
- 
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
 
@@ -20,13 +23,34 @@ app.get('/detail', function (req, res) {
     res.render('detail', req.query);
 });
 
-app.get('/mp/initpoint', async function(req, res) {
-  const title = typeof(req.query.title) === 'string' ? req.query.title : undefined;
-  const img = typeof(req.query.img) === 'string' ? req.query.img: undefined;
-  const price = typeof(req.query.price) === 'string' ? parseInt(req.query.price): undefined;
-  const unit = typeof(req.query.unit) === 'string' ? parseInt(req.query.unit): undefined;
+app.post('/mp/preference', async function(req, res) {
+  const title = typeof(req.body.title) === 'string' ? req.body.title : undefined;
+  const img = typeof(req.body.img) === 'string' ? req.body.img: undefined;
+  const price = typeof(req.body.price) === 'string' ? parseInt(req.body.price): undefined;
+  const unit = typeof(req.body.unit) === 'string' ? parseInt(req.body.unit): undefined;
+  const name = typeof(req.body.name) === 'string' ? req.body.name : undefined;
+  const surname = typeof(req.body.surname) === 'string' ? req.body.surname : undefined;
+  const email = typeof(req.body.email) === 'string' ? req.body.email : undefined;
+  const dni = typeof(req.body.dni) === 'string' ? req.body.dni : undefined;
+  const zip = typeof(req.body.zip) === 'string' ? req.body.zip : undefined;
+  const street = typeof(req.body.street) === 'string' ? req.body.street : undefined;
+  const num = typeof(req.body.number) === 'string' ? parseInt(req.body.number) : undefined;
   if (title && img && price && unit) {
     let preference = {
+      payer: {
+        name,
+        surname,
+        email,
+        identification: {
+          type: 'dni',
+          number: dni
+        },
+        address: {
+          zip_code: zip,
+          street_name: street,
+          street_number: num
+        }
+      },
       items: [
         {
           title: title,
@@ -46,7 +70,7 @@ app.get('/mp/initpoint', async function(req, res) {
         ],
         installments: 6,
       },
-      notification_url: 'http://arcos1726.dyndns.org:3000/mp/notification',
+      notification_url: 'http://181.192.38.69:3000/mp/notification',
       back_urls: {
         "success": "http://localhost:3000/success",
         "failure": "http://localhost:3000/failure",
@@ -57,7 +81,10 @@ app.get('/mp/initpoint', async function(req, res) {
     try {
       let result = await mp.preferences.create(preference);
       console.log('PreferenceID:',result.body.id);
-      res.redirect(result.body.init_point);  
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200);
+      res.send(result.body.id);
+      res.end();
     } catch(err) {
       console.error(err);
       res.status(500);
@@ -70,6 +97,7 @@ app.get('/mp/initpoint', async function(req, res) {
 });
 
 app.post('/mp/notification', async function(req, res) {
+  console.log('Notification', req.query);
   if (req.query.topic === 'payment') {
     console.log('PaymentID:', req.query.id);
     try {
@@ -90,6 +118,11 @@ app.post('/mp/notification', async function(req, res) {
   }
   res.status(200);
   res.end();
+});
+
+app.post('/procesar-pago', async function(req, res) {
+  res.writeHead(301, {'Location': req.body.back_url});
+  res.end();  
 });
 
 app.get('/success', async function(req, res) {
